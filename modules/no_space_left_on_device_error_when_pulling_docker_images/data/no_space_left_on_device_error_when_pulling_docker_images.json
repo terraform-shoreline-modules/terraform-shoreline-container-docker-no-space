@@ -1,0 +1,150 @@
+{
+  "name": "no_space_left_on_device_error_when_pulling_docker_images",
+  "description": "This incident type occurs when attempting to pull a docker image to run a container, but the process fails with an error message stating that there is no space left on the device. This error usually indicates that the disk where the image is being pulled has run out of space. To resolve this issue, the user needs to determine what is taking up the disk space and free up some space. One potential method to identify the files or directories consuming excessive space is to check the /var/log/syslog file.",
+  "params": [
+    {
+      "name": "PATH",
+      "value": ""
+    },
+    {
+      "name": "OUTPUT_FILE_PATH",
+      "value": ""
+    },
+    {
+      "name": "DIRECTORY_PATH",
+      "value": ""
+    },
+    {
+      "name": "MAX_SIZE",
+      "value": ""
+    },
+    {
+      "name": "HOST_NAME",
+      "value": ""
+    },
+    {
+      "name": "K8S_CLUSTER_NAME",
+      "value": ""
+    },
+    {
+      "name": "NAMESPACE",
+      "value": ""
+    }
+  ],
+  "cells": [
+    {
+      "name": "cell_1",
+      "type": "MARKDOWN",
+      "enabled": true,
+      "content": "## \"No space left on device\" error when pulling docker images\nThis incident type occurs when attempting to pull a docker image to run a container, but the process fails with an error message stating that there is no space left on the device. This error usually indicates that the disk where the image is being pulled has run out of space. To resolve this issue, the user needs to determine what is taking up the disk space and free up some space. One potential method to identify the files or directories consuming excessive space is to check the /var/log/syslog file."
+    },
+    {
+      "name": "cell_2",
+      "type": "MARKDOWN",
+      "enabled": true,
+      "content": "## Check available space on the device"
+    },
+    {
+      "name": "cell_3",
+      "type": "OP_LANG",
+      "enabled": true,
+      "content": "(host | host_name=$HOST_NAME) union (pod | k8s_cluster_name=$K8S_CLUSTER_NAME | namespace=$NAMESPACE) | `df -h`"
+    },
+    {
+      "name": "cell_4",
+      "type": "MARKDOWN",
+      "enabled": true,
+      "content": "## Identify top disk space consumers in the current directory"
+    },
+    {
+      "name": "cell_5",
+      "type": "OP_LANG",
+      "enabled": true,
+      "content": "(host | host_name=$HOST_NAME) union (pod | k8s_cluster_name=$K8S_CLUSTER_NAME | namespace=$NAMESPACE) | `du -sh ./* | sort -hr`"
+    },
+    {
+      "name": "cell_6",
+      "type": "MARKDOWN",
+      "enabled": true,
+      "content": "## Identify top disk space consumers in the /var directory"
+    },
+    {
+      "name": "cell_7",
+      "type": "OP_LANG",
+      "enabled": true,
+      "content": "(host | host_name=$HOST_NAME) union (pod | k8s_cluster_name=$K8S_CLUSTER_NAME | namespace=$NAMESPACE) | `sudo du -sh /var/* | sort -hr`"
+    },
+    {
+      "name": "cell_8",
+      "type": "MARKDOWN",
+      "enabled": true,
+      "content": "## Check the available inodes on the device"
+    },
+    {
+      "name": "cell_9",
+      "type": "OP_LANG",
+      "enabled": true,
+      "content": "(host | host_name=$HOST_NAME) union (pod | k8s_cluster_name=$K8S_CLUSTER_NAME | namespace=$NAMESPACE) | `df -i`"
+    },
+    {
+      "name": "cell_10",
+      "type": "MARKDOWN",
+      "enabled": true,
+      "content": "## Identify the directories with the most inodes in the current directory"
+    },
+    {
+      "name": "cell_11",
+      "type": "OP_LANG",
+      "enabled": true,
+      "content": "(host | host_name=$HOST_NAME) union (pod | k8s_cluster_name=$K8S_CLUSTER_NAME | namespace=$NAMESPACE) | `sudo find ${PATH} -xdev -type f | cut -d \"/\" -f 2 | sort | uniq -c | sort -rn`"
+    },
+    {
+      "name": "cell_12",
+      "type": "MARKDOWN",
+      "enabled": true,
+      "content": "## Check the syslog file for errors"
+    },
+    {
+      "name": "cell_13",
+      "type": "OP_LANG",
+      "enabled": true,
+      "content": "(host | host_name=$HOST_NAME) union (pod | k8s_cluster_name=$K8S_CLUSTER_NAME | namespace=$NAMESPACE) | `sudo tail -f /var/log/syslog`"
+    },
+    {
+      "name": "cell_14",
+      "type": "MARKDOWN",
+      "enabled": true,
+      "content": "## Identify the files or directories consuming excessive space on the disk by using a disk space analyzer tool like 'ncdu' or running the 'df' command to see the disk usage."
+    },
+    {
+      "name": "cell_15",
+      "type": "OP_LANG",
+      "enabled": true,
+      "content": "host | host_name=$HOST_NAME | invoke_analyze_directory($OUTPUT_FILE_PATH, $DIRECTORY_PATH)"
+    },
+    {
+      "name": "cell_16",
+      "type": "MARKDOWN",
+      "enabled": true,
+      "content": "## Truncate the /var/log/syslog if the size is large and your containers emit logs"
+    },
+    {
+      "name": "cell_17",
+      "type": "OP_LANG",
+      "enabled": true,
+      "content": "host | host_name=$HOST_NAME | invoke_check_syslog_size($MAX_SIZE)"
+    },
+    {
+      "name": "cell_18",
+      "type": "MARKDOWN",
+      "enabled": true,
+      "content": "## Remove any dangling docker images"
+    },
+    {
+      "name": "cell_19",
+      "type": "OP_LANG",
+      "enabled": true,
+      "content": "host | host_name=$HOST_NAME | invoke_remove_dangling_images()"
+    }
+  ]
+}
